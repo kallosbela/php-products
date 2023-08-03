@@ -75,17 +75,27 @@ function createProductHandler()
 
 function deleteProductHandler() {
   $deletedProductId = $_GET["id"] ?? "";
-  $products = json_decode(file_get_contents("./products.json", true));
+  $products = json_decode(file_get_contents("./products.json"), true);
   
   $foundProductIndex = -1;
 
   foreach($products as $index => $product) {
     if ($product["id"] === $deletedProductId) {
       $foundProductIndex = $index;
+      break;
     }
   }
 
-  var_dump($foundProductIndex);
+  if ($foundProductIndex === -1) {
+    header("Location: /termekek");
+    return;
+  }
+
+  array_splice($products, $foundProductIndex, 1);
+
+  $json = json_encode($products);
+  file_put_contents('./products.json', $json);
+  header("Location: /termekek");
 }
 
 function notFoundHandler()
