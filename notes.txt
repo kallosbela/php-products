@@ -1,0 +1,133 @@
+*********************************
+index.php
+*********************************
+
+<?php
+
+$method = $_SERVER["REQUEST_METHOD"];
+$parsed = parse_url($_SERVER['REQUEST_URI']);
+$path = $parsed['path'];
+
+$routes = [
+    "GET" => [
+        "/" => "homeHandler",
+        "/termekek" => "productListHandler"
+    ],
+    "POST" => [
+        "/termekek" => "createProductHandler"
+    ]
+];
+
+$handlerFunction = $routes[$method][$path] ?? "notFoundHandler";
+
+$safeHandlerFunction = function_exists($handlerFunction) ? $handlerFunction : "notFoundHandler";
+
+$safeHandlerFunction();
+
+
+function homeHandler()
+{
+    require './views/home.php';
+}
+
+function productListHandler()
+{
+    $contents = file_get_contents("./products.json");
+    $products = json_decode($contents, true);
+    $isSuccess = isset($_GET["siker"]);
+    require "./views/product-list.php";
+}
+
+function createProductHandler()
+{
+
+    $newProduct = [
+        "name" => $_POST["name"],
+        "price" => (int)$_POST["price"],
+    ];
+
+    $content = file_get_contents("./products.json");
+    $products = json_decode($content, true);
+
+    array_push($products, $newProduct);
+
+    $json = json_encode($products);
+    file_put_contents('./products.json', $json);
+
+    header("Location: /termekek?siker=1");
+}
+
+function notFoundHandler()
+{
+    echo "Oldal nem található";
+}
+
+******************************
+home.php
+******************************
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css" />
+  <title>Document</title>
+</head>
+<body>
+  <div class="card container p-3 m-3">
+    <h1>Címlap</h1>
+    <a href="/termekek">
+      <button class="btn btn-primary">
+        Tovább a terméklistára
+      </button>
+    </a>
+  </div>
+</body>
+</html>
+
+******************************************
+products.json
+******************************************
+[
+  { "name": "Alma", "price": 350 },
+  { "name": "Kókusz", "price": 420 },
+  { "name": "Narancs", "price": 370 }
+]
+
+*******************************************
+product-list.php
+*******************************************
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css" />
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="card container p-3 m-3">
+        <?php if($isSuccess): ?>
+            <div class="alert alert-success">
+                Termék létrehozása sikeres!
+            </div>
+        <?php endif ?>
+        <form action="/termekek" method="POST">
+            <input type="text" name="name" placeholder="Név" />
+            <input type="number" name="price" placeholder="Ár" />
+            <button type="submit" class="btn btn-success">Küldés</button>
+        </form>
+
+        <?php foreach ($products as $product) : ?>
+            <h3>Név: <?php echo $product["name"] ?></h3>
+            <p>Ár: <?php echo $product["price"] ?> ft</p>
+            <hr>
+        <?php endforeach; ?>
+    </div>
+</body>
+
+</html>
