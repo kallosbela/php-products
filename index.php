@@ -11,7 +11,8 @@ $routes = [
   ],
   "POST" => [
     "/termekek" => "createProductHandler",
-    "/delete-product" => "deleteProductHandler"
+    "/delete-product" => "deleteProductHandler",
+    "/update-product" => "updateProductHandler"
   ]
 ];
 
@@ -45,7 +46,8 @@ function productListHandler()
   $isSuccess = isset($_GET["siker"]);
   $productListTemplate = compileTemplate("./views/product-list.php", [
     "products" => $products,
-    "isSuccess" => $isSuccess
+    "isSuccess" => $isSuccess,
+    "editedProductId" => $_GET["szerkesztes"] ?? ""
   ]);
 
   echo compileTemplate('./views/wrapper.php', [
@@ -58,8 +60,11 @@ function createProductHandler()
 {
   $newProduct = [
     "id" => uniqid(),
-    "name" => $_POST["name"],
-    "price" => $_POST["price"]
+    "name" => htmlspecialchars($_POST["name"]) ?? "",
+    "price" => (int)$_POST["price"] ?? 0,
+    "quantity" => (int)$_POST["quantity"] ?? 0,
+    "discount" => (float)$_POST["discount"] ?? 0,
+    "description" => htmlspecialchars($_POST["description"]) ?? ""
   ];
 
   $content = file_get_contents("./products.json");
@@ -71,6 +76,40 @@ function createProductHandler()
   file_put_contents("./products.json", $json);
 
   header("Location: /termekek?siker=1");
+}
+
+function updateProductHandler() {
+  $updatedProductId = $_GET["id"] ?? "";
+  $products = json_decode(file_get_contents("./products.json"), true);
+
+  $foundProductIndex = -1;
+
+  foreach($products as $index => $product) {
+    if ($product["id"] === $updatedProductId) {
+      $foundProductIndex = $index;
+      break;
+    }
+  }
+
+  if ($foundProductIndex === -1) {
+    header("Location: /termekek");
+    return;
+  }
+
+  $updatedProduct = [
+    "id" => $updatedProductId,
+    "name" => htmlspecialchars($_POST["name"]),
+    "price" => (int)$_POST["price"],
+    "quantity" => (int)$_POST["quantity"],
+    "discount" => (float)$_POST["discount"],
+    "description" => htmlspecialchars($_POST["description"])
+  ];
+
+  $products[$foundProductIndex] = $updatedProduct;
+
+  file_put_contents('./products.json', json_encode($products));
+  header("Location: /termekek");
+
 }
 
 function deleteProductHandler() {
